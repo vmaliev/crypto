@@ -13,7 +13,7 @@ import {
   BingXLeverageRequest,
   BingXLeverageResponse,
   BingXMarginTypeRequest,
-  BingXRequestHeaders,
+
   BingXErrorCode
 } from '@/types/bingx';
 import logger from '@/utils/logger';

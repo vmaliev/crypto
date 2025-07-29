@@ -6,8 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
-    "dev:watch": "nodemon --exec ts-node src/index.ts",
+    "dev": "ts-node -r tsconfig-paths/register src/index.ts",
+    "dev:watch": "nodemon --exec \"ts-node -r tsconfig-paths/register\" src/index.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint src/**/*.ts",
@@ -31,6 +31,7 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
+    "@types/nodemailer": "^6.4.17",
     "axios": "^1.6.0",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
@@ -39,7 +40,9 @@
     "helmet": "^7.1.0",
     "joi": "^17.11.0",
     "node-cron": "^3.0.3",
+    "nodemailer": "^7.0.5",
     "rate-limiter-flexible": "^4.0.1",
+    "sqlite": "^5.1.1",
     "sqlite3": "^5.1.6",
     "winston": "^3.11.0",
     "ws": "^8.14.2"

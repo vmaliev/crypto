@@ -206,7 +206,11 @@ export class WebhookServer {
   private setupErrorHandling(): void {
     // Global error handler
     this.app.use((error: Error, req: Request, res: Response, _next: NextFunction) => {
-      logger.logError(error, 'Express Error Handler');
+      try {
+        logger.logError(error, 'Express Error Handler');
+      } catch (logError) {
+        console.error('Failed to log express error:', logError);
+      }
       
       res.status(500).json({
         error: 'Internal Server Error',
@@ -217,13 +221,21 @@ export class WebhookServer {
 
     // Handle uncaught exceptions
     process.on('uncaughtException', (error: Error) => {
-      logger.logError(error, 'Uncaught Exception');
+      try {
+        logger.logError(error, 'Uncaught Exception');
+      } catch (logError) {
+        console.error('Failed to log uncaught exception:', logError);
+      }
       this.gracefulShutdown();
     });
 
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (reason: any) => {
-      logger.logError(new Error(`Unhandled Rejection: ${reason}`), 'Unhandled Promise Rejection');
+      try {
+        logger.logError(new Error(`Unhandled Rejection: ${reason}`), 'Unhandled Promise Rejection');
+      } catch (logError) {
+        console.error('Failed to log unhandled rejection:', logError);
+      }
       this.gracefulShutdown();
     });
   }
