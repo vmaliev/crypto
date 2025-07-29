@@ -1,0 +1,151 @@
+//@version=5
+strategy("BingX Trading Bot Strategy", overlay=true, margin_long=100, margin_short=100, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+
+// ============================================================================
+// INPUT PARAMETERS
+// ============================================================================
+
+// RSI Settings
+rsi_length = input.int(14, "RSI Length", minval=1)
+rsi_oversold = input.float(30, "RSI Oversold Level", minval=0, maxval=100)
+rsi_overbought = input.float(70, "RSI Overbought Level", minval=0, maxval=100)
+
+// MFI Settings
+mfi_length = input.int(14, "MFI Length", minval=1)
+mfi_oversold = input.float(20, "MFI Oversold Level", minval=0, maxval=100)
+mfi_overbought = input.float(80, "MFI Overbought Level", minval=0, maxval=100)
+
+// Volume Settings
+volume_multiplier = input.float(1.5, "Volume Multiplier", minval=1.0, step=0.1)
+
+// Webhook Settings
+webhook_url = input.string("", "Webhook URL (leave empty to disable)", group="Webhook")
+enable_webhook = input.bool(true, "Enable Webhook Alerts", group="Webhook")
+
+// ============================================================================
+// INDICATORS CALCULATION
+// ============================================================================
+
+// Calculate RSI
+rsi = ta.rsi(close, rsi_length)
+
+// Calculate MFI
+mfi = ta.mfi(close, mfi_length)
+
+// Calculate volume conditions
+volume_increasing = volume > volume[1] * volume_multiplier
+volume_decreasing = volume < volume[1] / volume_multiplier
+
+// Calculate price momentum
+price_momentum = (close - close[1]) / close[1] * 100
+
+// ============================================================================
+// SIGNAL CONDITIONS
+// ============================================================================
+
+// Long (BUY) conditions
+long_condition = rsi < rsi_oversold and 
+                 mfi < mfi_oversold and 
+                 volume_increasing and 
+                 price_momentum > 0
+
+// Short (SELL) conditions
+short_condition = rsi > rsi_overbought and 
+                  mfi > mfi_overbought and 
+                  volume_increasing and 
+                  price_momentum < 0
+
+// Exit conditions
+exit_long = rsi > rsi_overbought or mfi > mfi_overbought
+exit_short = rsi < rsi_oversold or mfi < mfi_oversold
+
+// ============================================================================
+// STRATEGY EXECUTION
+// ============================================================================
+
+// Entry signals
+if long_condition
+    strategy.entry("Long", strategy.long)
+    
+    // Send webhook alert for BUY signal
+    if enable_webhook and webhook_url != ""
+        alert_message = "{\"symbol\": \"" + syminfo.ticker + "\", \"action\": \"BUY\", \"price\": " + str.tostring(close) + ", \"strategy\": \"MFI_RSI\", \"timeframe\": \"" + timeframe.period + "\", \"strength\": \"STRONG\", \"confidence\": 0.8, \"mfi\": " + str.tostring(mfi) + ", \"rsi\": " + str.tostring(rsi) + ", \"volume\": " + str.tostring(volume) + ", \"volume_ratio\": " + str.tostring(volume / volume[1]) + ", \"momentum\": " + str.tostring(price_momentum) + ", \"timestamp\": \"" + str.tostring(time) + "\"}"
+        alert(alert_message, alert.freq_once_per_bar)
+
+if short_condition
+    strategy.entry("Short", strategy.short)
+    
+    // Send webhook alert for SELL signal
+    if enable_webhook and webhook_url != ""
+        alert_message = "{\"symbol\": \"" + syminfo.ticker + "\", \"action\": \"SELL\", \"price\": " + str.tostring(close) + ", \"strategy\": \"MFI_RSI\", \"timeframe\": \"" + timeframe.period + "\", \"strength\": \"STRONG\", \"confidence\": 0.8, \"mfi\": " + str.tostring(mfi) + ", \"rsi\": " + str.tostring(rsi) + ", \"volume\": " + str.tostring(volume) + ", \"volume_ratio\": " + str.tostring(volume / volume[1]) + ", \"momentum\": " + str.tostring(price_momentum) + ", \"timestamp\": \"" + str.tostring(time) + "\"}"
+        alert(alert_message, alert.freq_once_per_bar)
+
+// Exit signals
+if exit_long
+    strategy.close("Long")
+    
+    // Send webhook alert for exit signal
+    if enable_webhook and webhook_url != ""
+        alert_message = "{\"symbol\": \"" + syminfo.ticker + "\", \"action\": \"CLOSE\", \"price\": " + str.tostring(close) + ", \"strategy\": \"MFI_RSI\", \"timeframe\": \"" + timeframe.period + "\", \"strength\": \"MEDIUM\", \"confidence\": 0.7, \"reason\": \"Exit_Long\", \"mfi\": " + str.tostring(mfi) + ", \"rsi\": " + str.tostring(rsi) + ", \"timestamp\": \"" + str.tostring(time) + "\"}"
+        alert(alert_message, alert.freq_once_per_bar)
+
+if exit_short
+    strategy.close("Short")
+    
+    // Send webhook alert for exit signal
+    if enable_webhook and webhook_url != ""
+        alert_message = "{\"symbol\": \"" + syminfo.ticker + "\", \"action\": \"CLOSE\", \"price\": " + str.tostring(close) + ", \"strategy\": \"MFI_RSI\", \"timeframe\": \"" + timeframe.period + "\", \"strength\": \"MEDIUM\", \"confidence\": 0.7, \"reason\": \"Exit_Short\", \"mfi\": " + str.tostring(mfi) + ", \"rsi\": " + str.tostring(rsi) + ", \"timestamp\": \"" + str.tostring(time) + "\"}"
+        alert(alert_message, alert.freq_once_per_bar)
+
+// ============================================================================
+// PLOTTING
+// ============================================================================
+
+// Plot RSI and MFI on separate pane
+plot_rsi = plot(rsi, "RSI", color=color.blue, display=display.none)
+plot_mfi = plot(mfi, "MFI", color=color.red, display=display.none)
+
+// Plot signal conditions
+plotshape(long_condition, title="Long Signal", location=location.belowbar, color=color.green, style=shape.triangleup, size=size.small)
+plotshape(short_condition, title="Short Signal", location=location.abovebar, color=color.red, style=shape.triangledown, size=size.small)
+
+// Plot exit signals
+plotshape(exit_long, title="Exit Long", location=location.abovebar, color=color.orange, style=shape.circle, size=size.tiny)
+plotshape(exit_short, title="Exit Short", location=location.belowbar, color=color.orange, style=shape.circle, size=size.tiny)
+
+// ============================================================================
+// ALERT CONDITIONS
+// ============================================================================
+
+// Create alert conditions for manual setup
+alertcondition(long_condition, title="BUY Signal", message="BUY {{ticker}} at {{close}}")
+alertcondition(short_condition, title="SELL Signal", message="SELL {{ticker}} at {{close}}")
+alertcondition(exit_long or exit_short, title="Exit Signal", message="CLOSE {{ticker}} at {{close}}")
+
+// ============================================================================
+// TABLE DISPLAY
+// ============================================================================
+
+// Create info table
+if barstate.islast
+    var table info_table = table.new(position.top_right, 2, 6, bgcolor=color.white, border_width=1)
+    
+    table.cell(info_table, 0, 0, "Indicator", text_color=color.black, bgcolor=color.gray)
+    table.cell(info_table, 1, 0, "Value", text_color=color.black, bgcolor=color.gray)
+    
+    table.cell(info_table, 0, 1, "RSI", text_color=color.black)
+    table.cell(info_table, 1, 1, str.tostring(rsi, "#.##"), text_color=color.blue)
+    
+    table.cell(info_table, 0, 2, "MFI", text_color=color.black)
+    table.cell(info_table, 1, 2, str.tostring(mfi, "#.##"), text_color=color.red)
+    
+    table.cell(info_table, 0, 3, "Volume Ratio", text_color=color.black)
+    table.cell(info_table, 1, 3, str.tostring(volume / volume[1], "#.##"), text_color=color.purple)
+    
+    table.cell(info_table, 0, 4, "Momentum", text_color=color.black)
+    table.cell(info_table, 1, 4, str.tostring(price_momentum, "#.##") + "%", text_color=color.orange)
+    
+    table.cell(info_table, 0, 5, "Signal", text_color=color.black)
+    signal_text = long_condition ? "BUY" : short_condition ? "SELL" : "HOLD"
+    signal_color = long_condition ? color.green : short_condition ? color.red : color.gray
+    table.cell(info_table, 1, 5, signal_text, text_color=signal_color) 
