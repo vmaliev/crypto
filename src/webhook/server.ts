@@ -16,7 +16,7 @@ import config from '@/utils/config';
 export class WebhookServer {
   private app: Express;
   private server: any;
-  private rateLimiter: RateLimiterMemory;
+  private rateLimiter!: RateLimiterMemory;
   private isRunning: boolean = false;
 
   constructor() {
@@ -52,14 +52,14 @@ export class WebhookServer {
     // Body parsing middleware
     this.app.use(express.json({ 
       limit: '1mb',
-      verify: (req: any, res, buf) => {
+      verify: (req: any, _res, buf) => {
         req.rawBody = buf.toString('utf8');
       }
     }));
     this.app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
     // Request logging middleware
-    this.app.use((req: Request, res: Response, next: NextFunction) => {
+    this.app.use((req: Request, _res: Response, next: NextFunction) => {
       const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       req.headers['x-request-id'] = requestId;
       
@@ -99,7 +99,7 @@ export class WebhookServer {
 
   private setupRoutes(): void {
     // Health check endpoint
-    this.app.get('/health', (req: Request, res: Response) => {
+    this.app.get('/health', (_req: Request, res: Response) => {
       res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
@@ -110,7 +110,7 @@ export class WebhookServer {
     });
 
     // Main TradingView webhook endpoint
-    this.app.post('/webhook/tradingview', async (req: Request, res: Response) => {
+    this.app.post('/webhook/tradingview', async (req: Request, res: Response): Promise<void> => {
       try {
         const webhookRequest: WebhookRequest = {
           headers: req.headers as Record<string, string>,
@@ -130,10 +130,11 @@ export class WebhookServer {
             payload: req.body,
           });
 
-          return res.status(400).json({
+          res.status(400).json({
             error: 'Webhook validation failed',
             errors: validation.errors,
           });
+          return;
         }
 
         // Process the signal
@@ -177,7 +178,7 @@ export class WebhookServer {
     });
 
     // Webhook status endpoint
-    this.app.get('/webhook/status', (req: Request, res: Response) => {
+    this.app.get('/webhook/status', (_req: Request, res: Response) => {
       res.json({
         status: 'active',
         rateLimiter: {
@@ -204,7 +205,7 @@ export class WebhookServer {
 
   private setupErrorHandling(): void {
     // Global error handler
-    this.app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+    this.app.use((error: Error, req: Request, res: Response, _next: NextFunction) => {
       logger.logError(error, 'Express Error Handler');
       
       res.status(500).json({
@@ -221,7 +222,7 @@ export class WebhookServer {
     });
 
     // Handle unhandled promise rejections
-    process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+    process.on('unhandledRejection', (reason: any) => {
       logger.logError(new Error(`Unhandled Rejection: ${reason}`), 'Unhandled Promise Rejection');
       this.gracefulShutdown();
     });

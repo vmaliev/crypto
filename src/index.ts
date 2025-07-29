@@ -131,7 +131,7 @@ class TradingBot {
     });
 
     // Handle unhandled promise rejections
-    process.on('unhandledRejection', async (reason: any, promise: Promise<any>) => {
+    process.on('unhandledRejection', async (reason: any) => {
       logger.logError(new Error(`Unhandled Rejection: ${reason}`), 'Unhandled Promise Rejection');
       await this.shutdown();
       process.exit(1);

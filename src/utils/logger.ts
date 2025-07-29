@@ -102,6 +102,7 @@ class Logger {
     }
 
     const [, num, unit = 'b'] = match;
+    if (!num) return 10 * 1024 * 1024; // Default 10MB
     return parseInt(num) * (units[unit] || 1);
   }
 
