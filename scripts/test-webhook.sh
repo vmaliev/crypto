@@ -39,8 +39,8 @@ BUY_PAYLOAD='{
   "signal_strength": "STRONG",
   "mfi_value": 25,
   "rsi_value": 30,
-  "secret": "test-webhook-secret-12345",
-  "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"
+  "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+  "secret": "your-webhook-secret"
 }'
 
 RESPONSE=$(curl -s -w "%{http_code}" -X POST "$WEBHOOK_URL" \
@@ -70,8 +70,8 @@ SELL_PAYLOAD='{
   "signal_strength": "STRONG",
   "mfi_value": 75,
   "rsi_value": 70,
-  "secret": "test-webhook-secret-12345",
-  "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"
+  "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+  "secret": "your-webhook-secret"
 }'
 
 RESPONSE=$(curl -s -w "%{http_code}" -X POST "$WEBHOOK_URL" \
@@ -101,8 +101,8 @@ CLOSE_PAYLOAD='{
   "signal_strength": "MEDIUM",
   "mfi_value": 60,
   "rsi_value": 50,
-  "secret": "test-webhook-secret-12345",
-  "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"
+  "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
+  "secret": "your-webhook-secret"
 }'
 
 RESPONSE=$(curl -s -w "%{http_code}" -X POST "$WEBHOOK_URL" \

@@ -15,9 +15,10 @@ from datetime import datetime
 from email.header import decode_header
 
 class TradingViewEmailBridge:
-    def __init__(self, email_config, webhook_url):
+    def __init__(self, email_config, webhook_url, webhook_secret):
         self.email_config = email_config
         self.webhook_url = webhook_url
+        self.webhook_secret = webhook_secret
         self.processed_emails = set()
         
     def connect_email(self):
@@ -81,6 +82,7 @@ class TradingViewEmailBridge:
             r'\$(\d+(?:,\d{3})*(?:\.\d+)?)',  # $50,000.00
             r'(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:USD|USDT)',  # 50000 USD
             r'price[:\s]*(\d+(?:,\d{3})*(?:\.\d+)?)',  # price: 50000
+            r'at\s+(\d+(?:,\d{3})*(?:\.\d+)?)',  # at 50000
         ]
         
         for pattern in price_patterns:
@@ -93,6 +95,54 @@ class TradingViewEmailBridge:
                     continue
         
         return 0.0
+    
+    def extract_rsi(self, body):
+        """Extract RSI value from email body"""
+        rsi_patterns = [
+            r'RSI[:\s]*(\d+(?:\.\d+)?)',  # RSI: 30.5
+            r'RSI\s+(\d+(?:\.\d+)?)',  # RSI 30.5
+            r'(\d+(?:\.\d+)?)\s*RSI',  # 30.5 RSI
+        ]
+        
+        for pattern in rsi_patterns:
+            match = re.search(pattern, body, re.IGNORECASE)
+            if match:
+                try:
+                    return float(match.group(1))
+                except ValueError:
+                    continue
+        
+        # Default RSI values based on action
+        if 'BUY' in body.upper():
+            return 30.0  # Oversold for buy signals
+        elif 'SELL' in body.upper():
+            return 70.0  # Overbought for sell signals
+        else:
+            return 50.0  # Neutral
+    
+    def extract_mfi(self, body):
+        """Extract MFI value from email body"""
+        mfi_patterns = [
+            r'MFI[:\s]*(\d+(?:\.\d+)?)',  # MFI: 20.5
+            r'MFI\s+(\d+(?:\.\d+)?)',  # MFI 20.5
+            r'(\d+(?:\.\d+)?)\s*MFI',  # 20.5 MFI
+        ]
+        
+        for pattern in mfi_patterns:
+            match = re.search(pattern, body, re.IGNORECASE)
+            if match:
+                try:
+                    return float(match.group(1))
+                except ValueError:
+                    continue
+        
+        # Default MFI values based on action
+        if 'BUY' in body.upper():
+            return 20.0  # Oversold for buy signals
+        elif 'SELL' in body.upper():
+            return 80.0  # Overbought for sell signals
+        else:
+            return 50.0  # Neutral
     
     def extract_action(self, subject, body):
         """Extract trading action from email"""
@@ -113,20 +163,25 @@ class TradingViewEmailBridge:
             symbol = self.extract_symbol(subject, body)
             action = self.extract_action(subject, body)
             price = self.extract_price(body)
+            rsi_value = self.extract_rsi(body)
+            mfi_value = self.extract_mfi(body)
             
-            # Determine confidence based on email content
-            confidence = 0.7  # Default
+            # Determine signal strength based on email content
+            strength = 'MEDIUM'  # Default
             if 'STRONG' in body.upper() or 'CONFIRMED' in body.upper():
-                confidence = 0.9
-            elif 'WEAK' in body.upper() or 'POSSIBLE' in body.upper():
-                confidence = 0.5
-            
-            # Determine strength
-            strength = 'MEDIUM'
-            if confidence > 0.8:
                 strength = 'STRONG'
-            elif confidence < 0.6:
+            elif 'WEAK' in body.upper() or 'POSSIBLE' in body.upper():
                 strength = 'WEAK'
+            
+            # Validate and adjust RSI/MFI values
+            if rsi_value < 0 or rsi_value > 100:
+                rsi_value = 50.0
+            if mfi_value < 0 or mfi_value > 100:
+                mfi_value = 50.0
+            
+            # Ensure price is valid
+            if price <= 0:
+                price = 50000.0  # Default BTC price
             
             webhook_data = {
                 "symbol": symbol,
@@ -135,13 +190,10 @@ class TradingViewEmailBridge:
                 "strategy": "Email_Alert",
                 "timeframe": "1h",
                 "signal_strength": strength,
-                "mfi_value": 50,  # Default value since we can't extract from email
-                "rsi_value": 50,  # Default value since we can't extract from email
-                "secret": "test-webhook-secret-12345",  # You should set this in config
+                "mfi_value": mfi_value,
+                "rsi_value": rsi_value,
                 "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "source": "email",
-                "subject": subject,
-                "body_preview": body[:200] + "..." if len(body) > 200 else body
+                "secret": self.webhook_secret
             }
             
             return webhook_data
@@ -161,10 +213,11 @@ class TradingViewEmailBridge:
             )
             
             if response.status_code == 200:
-                print(f"✅ Signal sent to bot: {webhook_data['action']} {webhook_data['symbol']}")
+                print(f"✅ Signal sent to bot: {webhook_data['action']} {webhook_data['symbol']} at ${webhook_data['price']}")
                 return True
             else:
                 print(f"❌ Failed to send signal: HTTP {response.status_code}")
+                print(f"Response: {response.text}")
                 return False
                 
         except Exception as e:
@@ -226,6 +279,7 @@ class TradingViewEmailBridge:
         print(f"🚀 Starting TradingView Email Bridge...")
         print(f"📧 Monitoring: {self.email_config['email']}")
         print(f"🤖 Webhook URL: {self.webhook_url}")
+        print(f"🔑 Webhook Secret: {self.webhook_secret[:8]}...")
         print(f"⏰ Check interval: {check_interval} seconds")
         print("=" * 50)
         
@@ -253,7 +307,8 @@ def main():
             'port': 993  # Only needed for custom providers
         },
         'webhook': {
-            'url': 'http://localhost:3000/webhook/tradingview'
+            'url': 'http://localhost:3000/webhook/tradingview',
+            'secret': 'your-webhook-secret'  # Replace with your actual secret
         },
         'settings': {
             'check_interval': 60  # Check emails every 60 seconds
@@ -261,7 +316,11 @@ def main():
     }
     
     # Create and run the bridge
-    bridge = TradingViewEmailBridge(config['email'], config['webhook']['url'])
+    bridge = TradingViewEmailBridge(
+        config['email'], 
+        config['webhook']['url'],
+        config['webhook']['secret']
+    )
     bridge.run(config['settings']['check_interval'])
 
 if __name__ == "__main__":

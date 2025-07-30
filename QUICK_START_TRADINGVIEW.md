@@ -48,12 +48,11 @@ Copy the entire content from `scripts/tradingview-strategy.pine` and paste it in
   "price": {{close}},
   "strategy": "MFI_RSI",
   "timeframe": "{{timeframe}}",
-  "strength": "STRONG",
-  "confidence": 0.8,
-  "mfi": {{ta.mfi(close, 14)}},
-  "rsi": {{ta.rsi(close, 14)}},
-  "volume": {{volume}},
-  "timestamp": "{{time}}"
+  "signal_strength": "STRONG",
+  "mfi_value": {{ta.mfi(close, 14)}},
+  "rsi_value": {{ta.rsi(close, 14)}},
+  "timestamp": "{{time}}",
+  "secret": "your-webhook-secret"
 }
 ```
 
