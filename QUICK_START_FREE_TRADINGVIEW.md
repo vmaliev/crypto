@@ -84,7 +84,18 @@ Same as Method 1, Step 2
 
 ### Complete Setup:
 
-#### 1. Configure Email Bridge
+#### 1. Set Up Webhook Secret
+Create a `.env` file in the root directory:
+```bash
+# Required environment variables
+WEBHOOK_SECRET=test-webhook-secret-12345
+BINGX_API_KEY=your_bingx_api_key_here
+BINGX_SECRET_KEY=your_bingx_secret_key_here
+BINGX_TESTNET=true
+PAPER_TRADING=true
+```
+
+#### 2. Configure Email Bridge
 Edit `scripts/email-to-webhook.py`:
 ```python
 config = {
@@ -113,6 +124,12 @@ npm run dev
 #### 4. Run Email Bridge
 ```bash
 python scripts/email-to-webhook.py
+```
+
+#### 5. Test the Setup
+```bash
+# Test webhook directly
+./scripts/test-webhook.sh
 ```
 
 #### 5. Create TradingView Alerts
@@ -161,8 +178,10 @@ curl -X POST http://localhost:3000/webhook/tradingview \
     "price": 50000,
     "strategy": "Test",
     "timeframe": "1h",
-    "strength": "STRONG",
-    "confidence": 0.8,
+    "signal_strength": "STRONG",
+    "mfi_value": 25,
+    "rsi_value": 30,
+    "secret": "test-webhook-secret-12345",
     "timestamp": "2024-01-01T12:00:00Z"
   }'
 ```

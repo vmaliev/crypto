@@ -134,8 +134,10 @@ class TradingViewEmailBridge:
                 "price": price,
                 "strategy": "Email_Alert",
                 "timeframe": "1h",
-                "strength": strength,
-                "confidence": confidence,
+                "signal_strength": strength,
+                "mfi_value": 50,  # Default value since we can't extract from email
+                "rsi_value": 50,  # Default value since we can't extract from email
+                "secret": "test-webhook-secret-12345",  # You should set this in config
                 "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "source": "email",
                 "subject": subject,

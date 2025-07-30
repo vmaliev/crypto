@@ -36,13 +36,10 @@ BUY_PAYLOAD='{
   "price": 50000,
   "strategy": "MFI_RSI",
   "timeframe": "1h",
-  "strength": "STRONG",
-  "confidence": 0.8,
-  "mfi": 25,
-  "rsi": 30,
-  "volume": 1000000,
-  "volume_ratio": 1.5,
-  "momentum": 2.5,
+  "signal_strength": "STRONG",
+  "mfi_value": 25,
+  "rsi_value": 30,
+  "secret": "test-webhook-secret-12345",
   "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"
 }'
 
@@ -70,13 +67,10 @@ SELL_PAYLOAD='{
   "price": 52000,
   "strategy": "MFI_RSI",
   "timeframe": "1h",
-  "strength": "STRONG",
-  "confidence": 0.8,
-  "mfi": 75,
-  "rsi": 70,
-  "volume": 1200000,
-  "volume_ratio": 1.8,
-  "momentum": -1.5,
+  "signal_strength": "STRONG",
+  "mfi_value": 75,
+  "rsi_value": 70,
+  "secret": "test-webhook-secret-12345",
   "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"
 }'
 
@@ -104,11 +98,10 @@ CLOSE_PAYLOAD='{
   "price": 51000,
   "strategy": "MFI_RSI",
   "timeframe": "1h",
-  "strength": "MEDIUM",
-  "confidence": 0.7,
-  "reason": "Exit_Long",
-  "mfi": 60,
-  "rsi": 50,
+  "signal_strength": "MEDIUM",
+  "mfi_value": 60,
+  "rsi_value": 50,
+  "secret": "test-webhook-secret-12345",
   "timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"
 }'
 
